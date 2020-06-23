@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DataAccessLayer;
 using DataAccessLayer.Entities;
@@ -37,6 +38,15 @@ namespace NUnitTestProject1
         }
 
         [Test]
+        public void GetItemsThrowsExceptionTest()
+        {
+            _mockToDoRepo.Setup(x => x.GetItems()).Returns(It.IsAny<List<ToDoEntity>>());
+
+            var controller = new ToDoController(_mockToDoRepo.Object, _mockLogger.Object);
+            Assert.Throws<NullReferenceException>(delegate { controller.GetItems(); });
+        }
+
+        [Test]
         public void GetItemTest()
         {
             _mockToDoRepo.Setup(x => x.GetItem(It.IsAny<int>())).Returns(new ToDoEntity { Id = int.MaxValue, Description = string.Empty, Name = string.Empty });
@@ -50,12 +60,10 @@ namespace NUnitTestProject1
         [Test]
         public void GetItemThrowsExceptionTest()
         {
-            _mockToDoRepo.Setup(x => x.GetItem(It.IsAny<int>())).Returns(new ToDoEntity { Id = int.MaxValue, Description = string.Empty, Name = string.Empty });
+            _mockToDoRepo.Setup(x => x.GetItem(It.IsAny<int>())).Returns(It.IsAny<ToDoEntity>());
 
             var controller = new ToDoController(_mockToDoRepo.Object, _mockLogger.Object);
-            var item = controller.GetItem(1);
-
-            Assert.NotNull(item);
+            Assert.Throws<NullReferenceException>(delegate { controller.GetItems(); });
         }
 
         [Test]
