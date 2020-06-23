@@ -1,78 +1,127 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 using DataAccessLayer;
 using DataAccessLayer.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using SaxoAPI.Converters;
 using SaxoAPI.Models;
 
 namespace SaxoAPI.Controllers
 {
     [ApiController]
-    [Route("/todo")]
+    [Route("[api/controller]")]
     public class ToDoController : ControllerBase
     {
-        private ToDoRepo _toDoRepo;
-        public ToDoController(ToDoRepo toDoRepo)
+        private readonly IRepository<ToDoEntity> _toDoRepo;
+        private readonly ILogger<ToDoController> _logger;
+        public ToDoController(IRepository<ToDoEntity> toDoRepo, ILogger<ToDoController> logger)
         {
             _toDoRepo = toDoRepo;
+            _logger = logger;
         }
 
         [HttpGet]
         public IActionResult GetItems()
         {
-
-            return Ok(_toDoRepo.GetItems());
+            var toDoList = new List<ToDoDTO>();
+            try
+            {
+                foreach (var item in _toDoRepo.GetItems())
+                {
+                    var toDoItem = ToDoItemConverter.ConvertToDTO(item);
+                    toDoList.Add(toDoItem);
+                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError($"Request failed for { HttpContext.TraceIdentifier } with message: {exception.Message}");
+                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed while fetching.");
+            }
+            return Ok(toDoList);
         }
 
-        [HttpGet]
-        public IActionResult GetItem(int id)
+        [HttpGet("{id}")]
+        public ActionResult<ToDoDTO> GetItem(int id)
         {
-            var toDoEntity = _toDoRepo.GetItem(id);
+            ToDoDTO toDoItem;
+            try
+            {
+                toDoItem = ToDoItemConverter.ConvertToDTO(_toDoRepo.GetItem(id));
 
-            var toDoItem = ToDoItemConverter.Convert(toDoEntity);
-
-            if (toDoItem == null)
-                return NotFound();
-
+                if (toDoItem == null)
+                    return NotFound();
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError($"Request failed for { HttpContext.TraceIdentifier } with message: {exception.Message}");
+                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed while fetching.");
+            }
             return Ok(toDoItem);
         }
 
         [HttpPost]
-        public IActionResult PostItem(ToDoDTO todoContent)
+        public ActionResult<int> PostItem(ToDoDTO item)
         {
-            if (todoContent == null)
-                return NoContent();
+            if (item == null)
+                return StatusCode((int)HttpStatusCode.BadRequest, "No item to create.");
 
-            //todoContent content update inside db
-
-            return CreatedAtAction("CreateToDo", todoContent);
+            int result;
+            try
+            {
+                result = _toDoRepo.PostItem(ToDoItemConverter.ConvertToEntity(item));
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError($"Request failed for { HttpContext.TraceIdentifier } with message: {exception.Message}");
+                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed while creating.");
+            }
+            if (result == 1)
+                return CreatedAtAction("PostItem", item);
+            else
+                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed while creating.");
         }
 
         [HttpPut]
-        public IActionResult UpdateItem(int id)
+        public ActionResult<int> UpdateItem(ToDoDTO item)
         {
-            if (todoContent == null)
-                return NoContent();
+            if (item == null)
+                return StatusCode((int)HttpStatusCode.BadRequest, "No item to update.");
+            int result;
+            try
+            {
+                result = _toDoRepo.UpdateItem(ToDoItemConverter.ConvertToEntity(item));
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError($"Request failed for { HttpContext.TraceIdentifier } with message: {exception.Message}");
+                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed while updating.");
+            }
+            if (result == 1)
+                return Content("Resource updated successfully.");
+            else
+                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed while updating.");
 
-            //todoContent content update inside db
-
-            return CreatedAtAction("CreateToDo", todoContent);
         }
 
-        [HttpDelete]
-        public IActionResult DeleteItem(int id)
+        [HttpDelete("{id}")]
+        public ActionResult<int> DeleteItem(int id)
         {
-            IEnumerable<ToDoDTO> todoList = new List<ToDoDTO>(); //Fetched from db
-            var todoItem = todoList.FirstOrDefault(x => x.Id == id);
-
-            if (todoItem == null)
-                return NotFound();
-
-            return NoContent();
+            int result;
+            try
+            {
+                result = _toDoRepo.DeleteItem(id);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError($"Request failed for { HttpContext.TraceIdentifier } with message: {exception.Message}");
+                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed while deleting.");
+            }
+            if (result == 1)
+                return Content("Resource deleted successfully.");
+            else
+                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed while deleting.");
         }
     }
 }

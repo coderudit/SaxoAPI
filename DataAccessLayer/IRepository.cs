@@ -3,17 +3,17 @@ using System.Collections.Generic;
 
 namespace DataAccessLayer
 {
-    public interface IRespository
+    public interface IRepository<T>
     {
-        List<T> GetItems<T>();
+        List<T> GetItems();
 
-        T GetItem<T>(int id);
+        T GetItem(int id);
 
-        void PostItem<T>(T item);
+        int PostItem(T item);
 
-        void UpdateItem<T>(T item);
+        int UpdateItem(T item);
 
-        void DeleteItem(int id);
+        int DeleteItem(int id);
 
     }
     

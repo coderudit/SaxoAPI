@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using DataAccessLayer.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace DataAccessLayer
 {
-    public class ToDoRepo //: IRespository
+    public class ToDoRepo : IRepository<ToDoEntity>
     {
         private readonly List<ToDoEntity> _toDoEntityList;
-        public ToDoRepo()
+        private readonly ILogger<ToDoRepo> _logger;
+        public ToDoRepo(ILogger<ToDoRepo> logger)
         {
-
+            _logger = logger;
             _toDoEntityList = new List<ToDoEntity>
             {
-                new ToDoEntity { Id = 1, Description = "Item 1" },
-                new ToDoEntity { Id = 2, Description = "Item 2" }
+                new ToDoEntity { Id = 1, Description = "Item 1", Name = "Item 1 name"},
+                new ToDoEntity { Id = 2, Description = "Item 2", Name = "Item 2 name" }
             };
         }
 
@@ -30,21 +30,53 @@ namespace DataAccessLayer
             return _toDoEntityList;
         }
 
-        public void PostItem(ToDoEntity item)
+        public int PostItem(ToDoEntity item)
         {
-            _toDoEntityList.Add(item);
+            var result = 0;
+            try
+            {
+                _toDoEntityList.Add(item);
+                result = 1;
+            }
+            catch(Exception exception)
+            {
+                _logger.LogError(exception.Message);
+            }
+            return result;
         }
 
-        public void UpdateItem(ToDoEntity item)
+        public int UpdateItem(ToDoEntity item)
         {
-            _toDoEntityList.FirstOrDefault(x => x.Id == item.Id).Description = item.Description;
+            var result = 0;
+            try
+            {
+                _toDoEntityList.FirstOrDefault(x => x.Id == item.Id).Description = item.Description;
+                result = 1;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception.Message);
+            }
+            return result;
         }
 
-        public void DeleteItem(int id)
+        public int DeleteItem(int id)
         {
-            var itemToDelete = _toDoEntityList.FirstOrDefault(x => x.Id == id);
-            if (itemToDelete != null)
-                _toDoEntityList.Remove(itemToDelete);
+            var result = 0;
+            try
+            {
+                var itemToDelete = _toDoEntityList.FirstOrDefault(x => x.Id == id);
+                if (itemToDelete != null)
+                {
+                    _toDoEntityList.Remove(itemToDelete);
+                    result = 1;
+                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception.Message);
+            }
+            return result;
         }
 
     }
